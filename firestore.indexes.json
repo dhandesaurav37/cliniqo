@@ -1,0 +1,113 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "clinicMemberships",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicOwnerId", "order": "ASCENDING" },
+        { "fieldPath": "clinicId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clinicMemberships",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clinicJoinRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicOwnerId", "order": "ASCENDING" },
+        { "fieldPath": "clinicId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "staffAuditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicOwnerId", "order": "ASCENDING" },
+        { "fieldPath": "clinicId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "doctorId", "order": "ASCENDING" },
+        { "fieldPath": "appointmentDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "patientDocId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "consultationId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "doctorId", "order": "ASCENDING" },
+        { "fieldPath": "appointmentDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "patientMobileLast10", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAtUtcMs", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointmentLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "appointmentId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notificationLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "appointmentId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "appointments",
+      "fieldPath": "scheduledAtUtcMs",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "notificationLogs",
+      "fieldPath": "providerMessageId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
+}
