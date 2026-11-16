@@ -39,7 +39,7 @@ interface AuthContextValue {
     clinic: ClinicRecord | null;
     joinRequest: ClinicJoinRequestRecord | null;
   }>;
-  reloadVerificationState: () => Promise<boolean>;
+  reloadVerificationState: (skipWorkspaceRefresh?: boolean) => Promise<boolean>;
   markNotificationRead: (notificationId: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   logout: () => Promise<void>;
@@ -70,12 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setWorkspaceLoading(true);
     try {
-      await ensureUserProfileOnLogin({
-        uid: currentUser.uid,
-        fullName: currentUser.displayName || 'Clinic User',
-        email: currentUser.email || '',
-      });
-
       if (!currentUser.emailVerified) {
         const snap = await getDoc(doc(db, 'users', currentUser.uid));
         const unverifiedProfile = snap.exists()
@@ -88,6 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNotifications([]);
         return { profile: unverifiedProfile, membership: null, clinic: null, joinRequest: null };
       }
+
+      await ensureUserProfileOnLogin({
+        uid: currentUser.uid,
+        fullName: currentUser.displayName || 'Clinic User',
+        email: currentUser.email || '',
+      });
 
       const data = await fetchUserWorkspace(currentUser.uid);
       setProfile(data.profile);
@@ -225,17 +225,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { profile: null, membership: null, clinic: null, joinRequest: null };
   }, [loadWorkspaceForUser]);
 
-  const reloadVerificationState = useCallback(async () => {
-    if (!auth.currentUser) return false;
-    await auth.currentUser.reload();
-    await auth.currentUser.getIdToken(true);
-    const verified = Boolean(auth.currentUser.emailVerified);
-    setUser(auth.currentUser);
-    if (verified) {
-      await loadWorkspaceForUser(auth.currentUser);
-    }
-    return verified;
-  }, [loadWorkspaceForUser]);
+  const reloadVerificationState = useCallback(
+    async (skipWorkspaceRefresh = false) => {
+      if (!auth.currentUser) return false;
+      await auth.currentUser.reload();
+      await auth.currentUser.getIdToken(true);
+      const verified = Boolean(auth.currentUser.emailVerified);
+      setUser(auth.currentUser);
+      if (verified && !skipWorkspaceRefresh) {
+        await loadWorkspaceForUser(auth.currentUser);
+      }
+      return verified;
+    },
+    [loadWorkspaceForUser],
+  );
 
   const markNotificationRead = useCallback(async (notificationId: string) => {
     await markNotificationAsRead(notificationId);

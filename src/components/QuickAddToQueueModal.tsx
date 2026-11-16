@@ -56,6 +56,17 @@ export function QuickAddToQueueModal({
     };
   }, [open, clinic, searchInput]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !addingPatientId) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, addingPatientId, onClose]);
+
   if (!open) return null;
 
   const activeMap = new Map<string, DailyQueueEntryRecord>();

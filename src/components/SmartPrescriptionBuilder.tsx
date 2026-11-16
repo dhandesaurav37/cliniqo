@@ -22,7 +22,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ClinicRecord, UserProfileRecord } from '../lib/clinicService';
 import type {
@@ -148,6 +148,29 @@ export function SmartPrescriptionBuilder({
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showPreviewModal && !showSignModal && !showSaveTemplateModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showSaveTemplateModal && !savingTemplate) {
+        setShowSaveTemplateModal(false);
+      } else if (showSignModal && !signingPrescription) {
+        setShowSignModal(false);
+      } else if (showPreviewModal) {
+        setShowPreviewModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    showPreviewModal,
+    showSignModal,
+    signingPrescription,
+    showSaveTemplateModal,
+    savingTemplate,
+  ]);
 
   const filteredCatalog = useMemo(
     () =>
@@ -282,13 +305,21 @@ export function SmartPrescriptionBuilder({
 
   const handleSaveTemplateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!templateName.trim()) return;
+    if (templateName.trim().length < 2) {
+      setTemplateError('Please enter a template name (at least 2 characters).');
+      return;
+    }
     setSavingTemplate(true);
+    setTemplateError(null);
     try {
       await onSaveAsTemplate(templateName.trim(), templateDescription.trim());
       setShowSaveTemplateModal(false);
       setTemplateName('');
       setTemplateDescription('');
+    } catch (err: unknown) {
+      setTemplateError(
+        err instanceof Error ? err.message : 'Unable to save prescription template.',
+      );
     } finally {
       setSavingTemplate(false);
     }
@@ -321,7 +352,10 @@ export function SmartPrescriptionBuilder({
           {!isFinalized && medicines.length > 0 && (
             <button
               type="button"
-              onClick={() => setShowSaveTemplateModal(true)}
+              onClick={() => {
+                setTemplateError(null);
+                setShowSaveTemplateModal(true);
+              }}
               className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-[#0B192C] hover:bg-slate-50 cursor-pointer whitespace-nowrap"
             >
               <BookmarkPlus className="h-3.5 w-3.5 text-sky-700" aria-hidden="true" />
@@ -1382,6 +1416,15 @@ export function SmartPrescriptionBuilder({
                 className="mt-1 w-full min-h-[40px] rounded-xl border border-slate-200 px-3 text-sm text-[#0B192C]"
               />
             </div>
+
+            {templateError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
+              >
+                {templateError}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-1">
               <button

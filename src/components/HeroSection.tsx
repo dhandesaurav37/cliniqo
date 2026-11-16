@@ -90,7 +90,7 @@ export function HeroSection({ onOpenGetStarted }: HeroSectionProps) {
                     aria-hidden="true"
                     className="h-[380px] sm:h-[460px] lg:h-[520px] w-full flex items-center justify-center bg-gradient-to-br from-sky-50/60 via-white/40 to-cyan-50/60"
                   >
-                    <div className="h-24 w-24 rounded-3xl border border-sky-200/80 bg-white/70 shadow-sm animate-pulse" />
+                    <div className="h-24 w-24 rounded-3xl border border-sky-200/80 bg-white/70 shadow-sm" />
                   </div>
                 }
               >

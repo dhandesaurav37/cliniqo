@@ -296,7 +296,9 @@ async function dispatchAppointmentWhatsApp(params: {
   };
 }
 
-export const createClinicAppointment = onCall({ secrets: WHATSAPP_SECRETS }, async (request) => {
+export const createClinicAppointment = onCall(
+  { region: 'asia-south1', secrets: WHATSAPP_SECRETS },
+  async (request) => {
   const uid = assertVerifiedAuth(request.auth);
   const db = getNamedDb();
   const payload = request.data as Record<string, unknown>;
@@ -514,7 +516,9 @@ export const createClinicAppointment = onCall({ secrets: WHATSAPP_SECRETS }, asy
   };
 });
 
-export const rescheduleClinicAppointment = onCall({ secrets: WHATSAPP_SECRETS }, async (request) => {
+export const rescheduleClinicAppointment = onCall(
+  { region: 'asia-south1', secrets: WHATSAPP_SECRETS },
+  async (request) => {
   const uid = assertVerifiedAuth(request.auth);
   const db = getNamedDb();
   const payload = request.data as Record<string, unknown>;
@@ -724,7 +728,9 @@ export const rescheduleClinicAppointment = onCall({ secrets: WHATSAPP_SECRETS },
   };
 });
 
-export const transitionAppointmentStatus = onCall({ secrets: WHATSAPP_SECRETS }, async (request) => {
+export const transitionAppointmentStatus = onCall(
+  { region: 'asia-south1', secrets: WHATSAPP_SECRETS },
+  async (request) => {
   const uid = assertVerifiedAuth(request.auth);
   const db = getNamedDb();
   const payload = request.data as Record<string, unknown>;
@@ -904,7 +910,7 @@ export const transitionAppointmentStatus = onCall({ secrets: WHATSAPP_SECRETS },
  * WhatsApp reminders for active ('scheduled' | 'confirmed') appointments.
  */
 export const processAppointmentReminders = onSchedule(
-  { schedule: 'every 10 minutes', secrets: WHATSAPP_SECRETS },
+  { region: 'asia-south1', schedule: 'every 10 minutes', secrets: WHATSAPP_SECRETS },
   async () => {
     const db = getNamedDb();
     const nowMs = Date.now();
@@ -1045,7 +1051,9 @@ export const processAppointmentReminders = onSchedule(
  * Official Meta WhatsApp Business Cloud API Webhook.
  * Supports GET verification handshake and POST delivery status updates + patient Confirm / Reschedule replies.
  */
-export const whatsappWebhook = onRequest({ secrets: WHATSAPP_SECRETS }, async (req, res) => {
+export const whatsappWebhook = onRequest(
+  { region: 'asia-south1', secrets: WHATSAPP_SECRETS },
+  async (req, res) => {
   if (req.method === 'GET') {
     const mode = String(req.query['hub.mode'] ?? '');
     const token = String(req.query['hub.verify_token'] ?? '');

@@ -12,6 +12,7 @@ import { AuthLayout } from '../components/AuthLayout';
 import { resolveAuthorizedRoute } from '../components/RouteGuards';
 import { useAuth } from '../context/AuthContext';
 import { createInitialUserProfile } from '../lib/clinicService';
+import { getUserFriendlyErrorMessage } from '../lib/errorUtils';
 import { auth } from '../lib/firebase';
 
 function formatRegisterError(code?: string): string {
@@ -83,7 +84,7 @@ export function RegisterPage() {
       await createInitialUserProfile({
         uid: cred.user.uid,
         fullName: cleanName,
-        email: cleanEmail,
+        email: (cred.user.email || cleanEmail).toLowerCase(),
         mobile: cleanMobile,
       });
 
@@ -92,7 +93,11 @@ export function RegisterPage() {
       navigate('/verify-email', { replace: true });
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
-      setError(formatRegisterError(code));
+      setError(
+        code?.startsWith('auth/')
+          ? formatRegisterError(code)
+          : getUserFriendlyErrorMessage(err, 'Could not create your account right now. Please try again.'),
+      );
     } finally {
       setLoading(false);
     }
@@ -112,7 +117,11 @@ export function RegisterPage() {
       navigate(resolveAuthorizedRoute(workspace), { replace: true });
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
-      setError(formatRegisterError(code));
+      setError(
+        code?.startsWith('auth/')
+          ? formatRegisterError(code)
+          : getUserFriendlyErrorMessage(err, 'Could not complete Google registration. Please try again.'),
+      );
     } finally {
       setLoading(false);
     }

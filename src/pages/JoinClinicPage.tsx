@@ -207,7 +207,7 @@ export function JoinClinicPage() {
       await createInitialUserProfile({
         uid: cred.user.uid,
         fullName: cleanName,
-        email: cleanEmail,
+        email: (cred.user.email || cleanEmail).toLowerCase(),
         mobile: cleanMobile,
       });
       await sendEmailVerification(cred.user);
@@ -215,7 +215,11 @@ export function JoinClinicPage() {
       setStep(3);
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
-      setError(formatJoinAuthError(code));
+      setError(
+        code?.startsWith('auth/')
+          ? formatJoinAuthError(code)
+          : getUserFriendlyErrorMessage(err, 'Unable to complete registration right now. Please try again.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -241,7 +245,11 @@ export function JoinClinicPage() {
       }
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
-      setError(formatJoinAuthError(code));
+      setError(
+        code?.startsWith('auth/')
+          ? formatJoinAuthError(code)
+          : getUserFriendlyErrorMessage(err, 'Unable to complete Google authentication right now.'),
+      );
     } finally {
       setBusy(false);
     }

@@ -21,6 +21,10 @@ if (typeof window !== 'undefined' && appCheckSiteKey) {
 
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const FUNCTIONS_REGION = (
+  (import.meta as { env?: Record<string, string | undefined> }).env
+    ?.VITE_FIREBASE_FUNCTIONS_REGION || 'asia-south1'
+).trim();
 
 export enum OperationType {
   CREATE = 'create',

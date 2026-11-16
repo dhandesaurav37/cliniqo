@@ -20,7 +20,7 @@ export function VerifyEmailPage() {
     setStatusMessage(null);
     setChecking(true);
     try {
-      const verified = await reloadVerificationState();
+      const verified = await reloadVerificationState(true);
       if (verified) {
         const workspace = await refreshWorkspace();
         navigate(resolveAuthorizedRoute(workspace), { replace: true });

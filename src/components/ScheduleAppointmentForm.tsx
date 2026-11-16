@@ -136,13 +136,12 @@ export function ScheduleAppointmentForm({
   useEffect(() => {
     if (!clinic || initialPatient) return;
     const trimmed = patientSearch.trim();
-    if (!trimmed) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       queryPatientsPage(clinic.id, {
-        searchText: trimmed,
+        searchText: trimmed || undefined,
         statusFilter: 'active',
-        pageSize: 12,
+        pageSize: trimmed ? 12 : 20,
       })
         .then((res) => {
           if (!cancelled) setPatients(res.patients);
@@ -337,7 +336,7 @@ export function ScheduleAppointmentForm({
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 space-y-3">
-          <label className="block text-xs font-semibold text-slate-700">
+          <label htmlFor="appt-patient-search" className="block text-xs font-semibold text-slate-700">
             Select Patient *
           </label>
           <div className="relative">
@@ -346,6 +345,7 @@ export function ScheduleAppointmentForm({
               aria-hidden="true"
             />
             <input
+              id="appt-patient-search"
               type="text"
               value={patientSearch}
               onChange={(e) => setPatientSearch(e.target.value)}

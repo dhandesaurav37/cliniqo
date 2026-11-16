@@ -1,5 +1,8 @@
-import * as crypto from 'node:crypto';
 import { defineSecret } from 'firebase-functions/params';
+import {
+  verifyHmacSha256Signature,
+  verifyTimingSafeSecretMatch,
+} from './whatsappCrypto.js';
 
 export const WHATSAPP_ACCESS_TOKEN = defineSecret('WHATSAPP_ACCESS_TOKEN');
 export const WHATSAPP_PHONE_NUMBER_ID = defineSecret('WHATSAPP_PHONE_NUMBER_ID');
@@ -238,28 +241,10 @@ export function verifyMetaWebhookSignature(
   signatureHeader: string | undefined,
 ): boolean {
   const appSecret = readSecretSafe(WHATSAPP_APP_SECRET);
-  if (!appSecret) {
-    // Allow sandbox verification if WHATSAPP_APP_SECRET has not been provisioned yet
-    return true;
-  }
-  if (!rawBody || !signatureHeader || !signatureHeader.startsWith('sha256=')) {
-    return false;
-  }
-  const providedHex = signatureHeader.slice('sha256='.length).trim();
-  const expectedHex = crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
-  const providedBuf = Buffer.from(providedHex, 'hex');
-  const expectedBuf = Buffer.from(expectedHex, 'hex');
-  if (providedBuf.length !== expectedBuf.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(providedBuf, expectedBuf);
+  return verifyHmacSha256Signature(rawBody, signatureHeader, appSecret);
 }
 
 export function verifyWebhookTokenMatch(candidateToken: string): boolean {
   const expected = readSecretSafe(WHATSAPP_WEBHOOK_VERIFY_TOKEN);
-  if (!expected || !candidateToken) return false;
-  const a = Buffer.from(expected);
-  const b = Buffer.from(candidateToken);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  return verifyTimingSafeSecretMatch(expected, candidateToken);
 }

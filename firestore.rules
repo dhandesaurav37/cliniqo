@@ -829,23 +829,33 @@ service cloud.firestore {
         && isOwner(uid)
         && isValidUserProfile(incoming())
         && request.auth.token.email != null
-        && incoming().email == request.auth.token.email
+        && incoming().email.lower() == request.auth.token.email.lower()
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
       allow update: if isValidId(uid)
-        && isVerifiedUser()
         && isOwner(uid)
         && isValidUserProfile(incoming())
         && incoming().email == existing().email
         && incoming().acceptedTerms == existing().acceptedTerms
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'fullName', 'mobile', 'photoURL',
-          'qualification', 'specialization', 'registrationNumber',
-          'experience', 'consultationTimings', 'updatedAt'
-        ]);
+        && (
+          // Action 1: Basic registration details (fullName, mobile) by account owner
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'mobile', 'updatedAt'
+          ])
+          ||
+          // Action 2: Full clinical doctor profile update (verified accounts only)
+          (
+            isVerifiedUser()
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'fullName', 'mobile', 'photoURL',
+              'qualification', 'specialization', 'registrationNumber',
+              'experience', 'consultationTimings', 'updatedAt'
+            ])
+          )
+        );
 
       allow delete: if false;
     }
@@ -952,8 +962,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(patientDocId)
@@ -1047,8 +1056,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(logId)
@@ -1103,8 +1111,7 @@ service cloud.firestore {
 
           allow list: if isValidId(clinicId)
             && isValidQueueDate(queueDate)
-            && isActiveClinicMember(clinicId)
-            && resource.data.clinicId == clinicId;
+            && isActiveClinicMember(clinicId);
 
           allow create: if isValidId(clinicId)
             && isValidQueueDate(queueDate)
@@ -1232,8 +1239,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(logId)
@@ -1258,8 +1264,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isClinicDoctorOrOwner(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isClinicDoctorOrOwner(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(consultationId)
@@ -1322,8 +1327,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isClinicDoctorOrOwner(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isClinicDoctorOrOwner(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(prescriptionId)
@@ -1408,8 +1412,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isClinicDoctorOrOwner(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isClinicDoctorOrOwner(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(medicineId)
@@ -1447,8 +1450,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isClinicDoctorOrOwner(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isClinicDoctorOrOwner(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(templateId)
@@ -1488,8 +1490,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isClinicDoctorOrOwner(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isClinicDoctorOrOwner(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(logId)
@@ -1514,8 +1515,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(appointmentId)
@@ -1604,8 +1604,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(slotKey)
@@ -1646,8 +1645,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create, update: if isValidId(clinicId)
           && isValidId(patientDocId)
@@ -1672,8 +1670,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(logId)
@@ -1698,8 +1695,7 @@ service cloud.firestore {
           && existing().clinicId == clinicId;
 
         allow list: if isValidId(clinicId)
-          && isActiveClinicMember(clinicId)
-          && resource.data.clinicId == clinicId;
+          && isActiveClinicMember(clinicId);
 
         allow create: if isValidId(clinicId)
           && isValidId(notificationId)
@@ -1830,7 +1826,7 @@ service cloud.firestore {
         && requestId == incoming().clinicId + '_' + request.auth.uid
         && incoming().userId == request.auth.uid
         && request.auth.token.email != null
-        && incoming().applicantEmail == request.auth.token.email
+        && incoming().applicantEmail.lower() == request.auth.token.email.lower()
         && incoming().requestedRole == 'receptionist'
         && incoming().status == 'pending'
         && incoming().requestedAt == request.time

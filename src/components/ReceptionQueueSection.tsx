@@ -57,6 +57,17 @@ export function ReceptionQueueSection({ compact = false }: ReceptionQueueSection
   }, []);
 
   useEffect(() => {
+    if (!cancelTarget) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !cancelling) {
+        setCancelTarget(null);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [cancelTarget, cancelling]);
+
+  useEffect(() => {
     if (!clinic) return;
     setLoading(true);
     setError(null);

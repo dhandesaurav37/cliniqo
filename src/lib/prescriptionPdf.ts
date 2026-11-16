@@ -77,19 +77,27 @@ export function generatePrescriptionA4Pdf(data: PrescriptionDocumentData): void 
     }
   }
 
+  const clinicNameMaxWidth = Math.max(70, 180 - (headerLeftX - margin) - 76);
   pdf.setTextColor(11, 25, 44);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(14);
-  pdf.text(clinic.name || 'Clinic', headerLeftX, y + 3);
+  pdf.setFontSize(13.5);
+  const clinicNameLines = pdf.splitTextToSize(clinic.name || 'Clinic', clinicNameMaxWidth);
+  pdf.text(clinicNameLines, headerLeftX, y + 3);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8.5);
   pdf.setTextColor(71, 85, 105);
+  const afterNameY = y + 3 + (clinicNameLines.length - 1) * 5 + 4.5;
   const clinicAddr = `${clinic.address}, ${clinic.city}, ${clinic.state} ${clinic.pincode}`.trim();
-  const addrLines = pdf.splitTextToSize(clinicAddr, 95);
-  pdf.text(addrLines, headerLeftX, y + 7.5);
-  const afterAddrY = y + 7.5 + addrLines.length * 3.8;
-  pdf.text(`Tel: ${clinic.phone}${clinic.email ? ` | ${clinic.email}` : ''}`, headerLeftX, afterAddrY);
+  const addrLines = pdf.splitTextToSize(clinicAddr, Math.min(95, clinicNameMaxWidth));
+  pdf.text(addrLines, headerLeftX, afterNameY);
+  const afterAddrY = afterNameY + addrLines.length * 3.8;
+  const telLines = pdf.splitTextToSize(
+    `Tel: ${clinic.phone}${clinic.email ? ` | ${clinic.email}` : ''}`,
+    Math.min(95, clinicNameMaxWidth),
+  );
+  pdf.text(telLines, headerLeftX, afterAddrY);
+  const afterTelY = afterAddrY + telLines.length * 3.8;
 
   // Doctor Details (Right column)
   const rightX = pageWidth - margin;
@@ -97,26 +105,32 @@ export function generatePrescriptionA4Pdf(data: PrescriptionDocumentData): void 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(11);
   pdf.setTextColor(11, 25, 44);
-  pdf.text(`Dr. ${docName.replace(/^Dr\.?\s*/i, '')}`, rightX, y + 3, { align: 'right' });
+  const docNameLines = pdf.splitTextToSize(`Dr. ${docName.replace(/^Dr\.?\s*/i, '')}`, 72);
+  pdf.text(docNameLines, rightX, y + 3, { align: 'right' });
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8.5);
   pdf.setTextColor(71, 85, 105);
-  let docMetaY = y + 7.5;
+  let docMetaY = y + 3 + (docNameLines.length - 1) * 4.4 + 4.5;
   if (doctor?.qualification || doctor?.specialization) {
     const cred = [doctor?.qualification, doctor?.specialization].filter(Boolean).join(' · ');
-    pdf.text(cred, rightX, docMetaY, { align: 'right' });
-    docMetaY += 4;
+    const credLines = pdf.splitTextToSize(cred, 72);
+    pdf.text(credLines, rightX, docMetaY, { align: 'right' });
+    docMetaY += credLines.length * 3.8 + 0.5;
   }
   if (doctor?.registrationNumber) {
-    pdf.text(`Reg. No: ${doctor.registrationNumber}`, rightX, docMetaY, { align: 'right' });
-    docMetaY += 4;
+    const regLines = pdf.splitTextToSize(`Reg. No: ${doctor.registrationNumber}`, 72);
+    pdf.text(regLines, rightX, docMetaY, { align: 'right' });
+    docMetaY += regLines.length * 3.8 + 0.5;
   }
-  pdf.text(`Rx: ${prescription.prescriptionNumber} (v${prescription.version})`, rightX, docMetaY, {
-    align: 'right',
-  });
+  const rxLines = pdf.splitTextToSize(
+    `Rx: ${prescription.prescriptionNumber} (v${prescription.version})`,
+    72,
+  );
+  pdf.text(rxLines, rightX, docMetaY, { align: 'right' });
+  docMetaY += rxLines.length * 3.8;
 
-  y = Math.max(afterAddrY + 4, docMetaY + 4, y + 18);
+  y = Math.max(afterTelY + 3, docMetaY + 3, y + 18);
 
   // Header Divider
   pdf.setDrawColor(2, 132, 199);
@@ -124,35 +138,58 @@ export function generatePrescriptionA4Pdf(data: PrescriptionDocumentData): void 
   pdf.line(margin, y, pageWidth - margin, y);
   y += 5;
 
-  // Patient Information Band
+  // Patient Information Band (dynamically sized to prevent collisions)
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9.5);
+  const patientNameLines = pdf.splitTextToSize(`Patient: ${patient.fullName}`, contentWidth - 6);
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8.5);
+  const ageStr =
+    patient.age !== null && patient.age !== undefined ? `${patient.age} yrs` : 'Age —';
+  const metaLines = pdf.splitTextToSize(
+    `Patient ID: ${patient.patientId}   |   ${ageStr} / ${formatGender(patient.gender)}   |   Date: ${formatDocDate(prescription)}`,
+    contentWidth - 6,
+  );
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8.3);
+  const allergyLines =
+    patient.allergies.length > 0
+      ? pdf.splitTextToSize(`Allergies: ${patient.allergies.join(', ')}`, contentWidth - 6)
+      : [];
+
+  const bandHeight =
+    6 +
+    patientNameLines.length * 4.3 +
+    metaLines.length * 4.0 +
+    (allergyLines.length > 0 ? allergyLines.length * 3.9 + 1.5 : 0);
+
   pdf.setFillColor(244, 248, 253);
   pdf.setDrawColor(203, 213, 225);
   pdf.setLineWidth(0.25);
-  pdf.roundedRect(margin, y, contentWidth, 17, 1.5, 1.5, 'FD');
+  pdf.roundedRect(margin, y, contentWidth, bandHeight, 1.5, 1.5, 'FD');
 
+  let bandY = y + 5.2;
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(9.5);
   pdf.setTextColor(11, 25, 44);
-  pdf.text(`Patient: ${patient.fullName}`, margin + 3, y + 5.5);
+  pdf.text(patientNameLines, margin + 3, bandY);
+  bandY += patientNameLines.length * 4.3 + 0.8;
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8.5);
   pdf.setTextColor(51, 65, 85);
-  const ageStr =
-    patient.age !== null && patient.age !== undefined ? `${patient.age} yrs` : 'Age —';
-  pdf.text(
-    `Patient ID: ${patient.patientId}   |   ${ageStr} / ${formatGender(patient.gender)}   |   Date: ${formatDocDate(prescription)}`,
-    margin + 3,
-    y + 11.5,
-  );
-  if (patient.allergies.length > 0) {
+  pdf.text(metaLines, margin + 3, bandY);
+  bandY += metaLines.length * 4.0 + 0.8;
+
+  if (allergyLines.length > 0) {
     pdf.setTextColor(185, 28, 28);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(`Allergies: ${patient.allergies.join(', ').slice(0, 75)}`, rightX - 3, y + 5.5, {
-      align: 'right',
-    });
+    pdf.setFontSize(8.3);
+    pdf.text(allergyLines, margin + 3, bandY);
   }
-  y += 22;
+  y += bandHeight + 5;
 
   // Consultation Summary (Diagnosis & Recorded Clinical Observations)
   const diagParts = [
@@ -217,7 +254,14 @@ export function generatePrescriptionA4Pdf(data: PrescriptionDocumentData): void 
   prescription.medicines.forEach((med, idx) => {
     const titleText = `${med.medicineName}${med.strength ? ` (${med.strength})` : ''}`;
     const subMeta = [med.dosageForm, med.route].filter(Boolean).join(' · ');
-    const medColLines = pdf.splitTextToSize(`${titleText}\n${subMeta}`, 69);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    const titleLines = pdf.splitTextToSize(titleText, 69);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.8);
+    const subLines = subMeta ? pdf.splitTextToSize(subMeta, 69) : [];
 
     const regimeText = `${med.dosageDisplay} — ${med.frequencyLabel}\n${med.timing}`;
     const regimeLines = pdf.splitTextToSize(regimeText, 53);
@@ -229,7 +273,8 @@ export function generatePrescriptionA4Pdf(data: PrescriptionDocumentData): void 
       ? pdf.splitTextToSize(`Instructions: ${med.specialInstructions}`, contentWidth - 10)
       : [];
 
-    const maxLines = Math.max(medColLines.length, regimeLines.length, durLines.length, qtyLines.length);
+    const medColLineCount = titleLines.length + subLines.length;
+    const maxLines = Math.max(medColLineCount, regimeLines.length, durLines.length, qtyLines.length);
     const rowHeight = maxLines * 3.9 + (instrLines.length > 0 ? instrLines.length * 3.7 + 1.5 : 0) + 4;
     ensureSpace(rowHeight + 2);
 
@@ -237,13 +282,13 @@ export function generatePrescriptionA4Pdf(data: PrescriptionDocumentData): void 
     pdf.setFontSize(8.5);
     pdf.setTextColor(11, 25, 44);
     pdf.text(`${idx + 1}.`, margin + 2, y + 3.5);
-    pdf.text(medColLines[0] || '', margin + 8, y + 3.5);
+    pdf.text(titleLines, margin + 8, y + 3.5);
 
-    if (medColLines.length > 1) {
+    if (subLines.length > 0) {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(7.8);
       pdf.setTextColor(71, 85, 105);
-      pdf.text(medColLines.slice(1), margin + 8, y + 7.4);
+      pdf.text(subLines, margin + 8, y + 3.5 + titleLines.length * 3.8);
     }
 
     pdf.setFont('helvetica', 'normal');

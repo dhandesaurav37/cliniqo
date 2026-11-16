@@ -51,6 +51,7 @@ export function PrescriptionTemplatesPage() {
   const [followUpRecommendation, setFollowUpRecommendation] = useState('');
   const [medSearch, setMedSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<PrescriptionTemplateRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -82,6 +83,20 @@ export function PrescriptionTemplatesPage() {
     void loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    if (!modalOpen && !deleteTarget) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (deleteTarget && !deleting) {
+        setDeleteTarget(null);
+      } else if (modalOpen && !saving) {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [modalOpen, saving, deleteTarget, deleting]);
+
   const catalogMatches = useMemo(
     () =>
       filterClinicMedicines(clinicMedicines, medSearch, {
@@ -97,6 +112,7 @@ export function PrescriptionTemplatesPage() {
     setMedicines([]);
     setGeneralInstructions([]);
     setFollowUpRecommendation('');
+    setModalError(null);
     setModalOpen(true);
   };
 
@@ -107,6 +123,7 @@ export function PrescriptionTemplatesPage() {
     setMedicines(tpl.medicines || []);
     setGeneralInstructions(tpl.generalInstructions || []);
     setFollowUpRecommendation(tpl.followUpRecommendation || '');
+    setModalError(null);
     setModalOpen(true);
   };
 
@@ -146,15 +163,25 @@ export function PrescriptionTemplatesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinic || !user) return;
+    if (name.trim().length < 2) {
+      setModalError('Please enter a template name (at least 2 characters).');
+      return;
+    }
+    const invalidMedIdx = medicines.findIndex((m) => m.medicineName.trim().length < 2);
+    if (invalidMedIdx !== -1) {
+      setModalError(`Medicine row #${invalidMedIdx + 1} requires a valid medicine name.`);
+      return;
+    }
     setSaving(true);
+    setModalError(null);
     setError(null);
     setFeedback(null);
     try {
       await savePrescriptionTemplate({
         clinicId: clinic.id,
         templateId: editingTpl?.id || null,
-        name,
-        description,
+        name: name.trim(),
+        description: description.trim(),
         medicines,
         generalInstructions,
         followUpRecommendation,
@@ -163,11 +190,11 @@ export function PrescriptionTemplatesPage() {
       });
       setModalOpen(false);
       setFeedback(
-        editingTpl ? `Updated template "${name}".` : `Created template "${name}".`,
+        editingTpl ? `Updated template "${name.trim()}".` : `Created template "${name.trim()}".`,
       );
       await loadData();
     } catch (err: unknown) {
-      setError(getUserFriendlyErrorMessage(err, 'Unable to save template.'));
+      setModalError(getUserFriendlyErrorMessage(err, 'Unable to save template.'));
     } finally {
       setSaving(false);
     }
@@ -612,6 +639,15 @@ export function PrescriptionTemplatesPage() {
                 />
               </div>
             </div>
+
+            {modalError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
+              >
+                {modalError}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button

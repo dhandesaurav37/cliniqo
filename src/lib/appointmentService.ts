@@ -28,7 +28,7 @@ import {
   type WhatsAppNotificationStatus,
 } from './appointmentLogic';
 import type { ClinicRecord, MembershipRole, NotificationType } from './clinicService';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { db, FUNCTIONS_REGION, handleFirestoreError, OperationType } from './firebase';
 import type { PatientRecord } from './patientService';
 
 export interface ClinicDoctorOption {
@@ -519,7 +519,7 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
         appointmentId: string;
         whatsappNotificationStatus: WhatsAppNotificationStatus;
         whatsappError?: string | null;
-      }>(getFunctions(db.app), 'createClinicAppointment');
+      }>(getFunctions(db.app, FUNCTIONS_REGION), 'createClinicAppointment');
       const result = await fn({
         clinicId: clinic.id,
         patientDocId: patient.id,
@@ -783,7 +783,7 @@ export async function rescheduleAppointment(params: {
       const fn = httpsCallable<Record<string, unknown>, {
         whatsappNotificationStatus: WhatsAppNotificationStatus;
         whatsappError?: string | null;
-      }>(getFunctions(db.app), 'rescheduleClinicAppointment');
+      }>(getFunctions(db.app, FUNCTIONS_REGION), 'rescheduleClinicAppointment');
       const result = await fn({
         clinicId: clinic.id,
         appointmentId: appointment.id,
@@ -1018,7 +1018,7 @@ export async function updateAppointmentStatus(params: {
 
   if (USE_CLOUD_FUNCTIONS) {
     try {
-      const fn = httpsCallable(getFunctions(db.app), 'transitionAppointmentStatus');
+      const fn = httpsCallable(getFunctions(db.app, FUNCTIONS_REGION), 'transitionAppointmentStatus');
       await fn({
         clinicId: clinic.id,
         appointmentId: appointment.id,

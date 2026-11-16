@@ -12,7 +12,7 @@ import {
   writeBatch,
   type Timestamp,
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 
 export type MembershipRole = 'owner' | 'doctor' | 'receptionist';
 export type MembershipStatus = 'pending' | 'active' | 'rejected' | 'revoked';
@@ -253,14 +253,33 @@ export async function createInitialUserProfile(params: {
   mobile: string;
 }): Promise<void> {
   const path = `users/${params.uid}`;
+  const normalizedEmail = (auth.currentUser?.email || params.email)
+    .trim()
+    .toLowerCase()
+    .slice(0, 160);
+  const cleanName = (params.fullName || 'Clinic User').trim().slice(0, 120);
+  const cleanMobile = (params.mobile || 'Not provided').trim().slice(0, 24);
+
   try {
-    await setDoc(doc(db, 'users', params.uid), {
-      fullName: params.fullName.trim().slice(0, 120),
-      email: params.email.trim().slice(0, 160),
-      mobile: params.mobile.trim().slice(0, 24),
-      acceptedTerms: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    const userRef = doc(db, 'users', params.uid);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(userRef);
+      if (snap.exists()) {
+        tx.update(userRef, {
+          fullName: cleanName,
+          mobile: cleanMobile,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        tx.set(userRef, {
+          fullName: cleanName,
+          email: normalizedEmail,
+          mobile: cleanMobile,
+          acceptedTerms: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
@@ -274,14 +293,22 @@ export async function ensureUserProfileOnLogin(params: {
   mobile?: string;
 }): Promise<UserProfileRecord | null> {
   const path = `users/${params.uid}`;
+  const normalizedEmail = (auth.currentUser?.email || params.email)
+    .trim()
+    .toLowerCase()
+    .slice(0, 160);
+
   try {
     const snap = await getDoc(doc(db, 'users', params.uid));
     if (snap.exists()) {
       return { uid: snap.id, ...(snap.data() as Omit<UserProfileRecord, 'uid'>) };
     }
+    if (!normalizedEmail) {
+      return null;
+    }
     await setDoc(doc(db, 'users', params.uid), {
       fullName: (params.fullName || 'Clinic User').trim().slice(0, 120),
-      email: params.email.trim().slice(0, 160),
+      email: normalizedEmail,
       mobile: (params.mobile || 'Not provided').trim().slice(0, 24),
       acceptedTerms: true,
       createdAt: serverTimestamp(),

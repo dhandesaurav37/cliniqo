@@ -42,6 +42,7 @@ export function PrescriptionDetailPage() {
   const [showAmendModal, setShowAmendModal] = useState(false);
   const [amendReason, setAmendReason] = useState('');
   const [creatingAmendment, setCreatingAmendment] = useState(false);
+  const [amendError, setAmendError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const actorName = profile?.fullName || user?.displayName || 'Doctor';
@@ -80,47 +81,70 @@ export function PrescriptionDetailPage() {
     void loadDetail();
   }, [loadDetail]);
 
+  useEffect(() => {
+    if (!showAmendModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !creatingAmendment) setShowAmendModal(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showAmendModal, creatingAmendment]);
+
   const handleDownloadPdf = async () => {
     if (!clinic || !patient || !consultation || !prescription || !user || !membership) return;
-    generatePrescriptionA4Pdf({
-      clinic,
-      doctor: profile,
-      patient,
-      consultation,
-      prescription,
-    });
-    await recordPrescriptionPdfAction({
-      clinicId: clinic.id,
-      prescription,
-      doctorUid: user.uid,
-      doctorName: actorName,
-      actorRole: membership.role,
-      mode: 'download',
-    });
-    const logs = await fetchPrescriptionAuditLogs(clinic.id, prescription.id);
-    setAuditLogs(logs);
+    setError(null);
+    try {
+      generatePrescriptionA4Pdf({
+        clinic,
+        doctor: profile,
+        patient,
+        consultation,
+        prescription,
+      });
+      await recordPrescriptionPdfAction({
+        clinicId: clinic.id,
+        prescription,
+        doctorUid: user.uid,
+        doctorName: actorName,
+        actorRole: membership.role,
+        mode: 'download',
+      });
+      const logs = await fetchPrescriptionAuditLogs(clinic.id, prescription.id);
+      setAuditLogs(logs);
+    } catch (err: unknown) {
+      setError(getUserFriendlyErrorMessage(err, 'Unable to generate or record prescription PDF.'));
+    }
   };
 
   const handlePrint = async () => {
     if (!clinic || !prescription || !user || !membership) return;
-    window.print();
-    await recordPrescriptionPdfAction({
-      clinicId: clinic.id,
-      prescription,
-      doctorUid: user.uid,
-      doctorName: actorName,
-      actorRole: membership.role,
-      mode: 'print',
-    });
-    const logs = await fetchPrescriptionAuditLogs(clinic.id, prescription.id);
-    setAuditLogs(logs);
+    setError(null);
+    try {
+      window.print();
+      await recordPrescriptionPdfAction({
+        clinicId: clinic.id,
+        prescription,
+        doctorUid: user.uid,
+        doctorName: actorName,
+        actorRole: membership.role,
+        mode: 'print',
+      });
+      const logs = await fetchPrescriptionAuditLogs(clinic.id, prescription.id);
+      setAuditLogs(logs);
+    } catch (err: unknown) {
+      setError(getUserFriendlyErrorMessage(err, 'Unable to log print action.'));
+    }
   };
 
   const handleCreateAmendment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinic || !prescription || !user || !membership) return;
+    if (amendReason.trim().length < 3) {
+      setAmendError('Please enter a brief amendment reason (at least 3 characters).');
+      return;
+    }
     setCreatingAmendment(true);
-    setError(null);
+    setAmendError(null);
     try {
       await createAmendedPrescriptionDraft({
         clinicId: clinic.id,
@@ -128,12 +152,12 @@ export function PrescriptionDetailPage() {
         doctorUid: user.uid,
         doctorName: actorName,
         actorRole: membership.role,
-        reason: amendReason,
+        reason: amendReason.trim(),
       });
       setShowAmendModal(false);
       navigate(`/app/doctor/consultation/${prescription.consultationId}`);
     } catch (err: unknown) {
-      setError(getUserFriendlyErrorMessage(err, 'Unable to create amendment.'));
+      setAmendError(getUserFriendlyErrorMessage(err, 'Unable to create amendment.'));
       setCreatingAmendment(false);
     }
   };
@@ -178,7 +202,10 @@ export function PrescriptionDetailPage() {
               {prescription.status === 'finalized' && (
                 <button
                   type="button"
-                  onClick={() => setShowAmendModal(true)}
+                  onClick={() => {
+                    setAmendError(null);
+                    setShowAmendModal(true);
+                  }}
                   className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#0B192C] px-4 text-xs font-semibold text-white hover:bg-slate-800 cursor-pointer"
                 >
                   <FilePlus2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -314,6 +341,15 @@ export function PrescriptionDetailPage() {
                 className="mt-1 w-full min-h-[40px] rounded-xl border border-slate-200 px-3 text-sm text-[#0B192C]"
               />
             </div>
+
+            {amendError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
+              >
+                {amendError}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2">
               <button

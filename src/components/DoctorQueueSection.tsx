@@ -69,6 +69,17 @@ export function DoctorQueueSection({ compact = false }: DoctorQueueSectionProps)
   }, []);
 
   useEffect(() => {
+    if (!priorityTarget) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !savingPriority) {
+        setPriorityTarget(null);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [priorityTarget, savingPriority]);
+
+  useEffect(() => {
     if (!clinic) return;
     setLoading(true);
     setError(null);

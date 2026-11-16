@@ -121,6 +121,17 @@ export function PatientProfilePage() {
     return () => unsub();
   }, [clinic, queueDate]);
 
+  useEffect(() => {
+    if (!confirmArchive) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !archiving) {
+        setConfirmArchive(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [confirmArchive, archiving]);
+
   const activeQueueEntry = useMemo(() => {
     if (!patient) return null;
     return (

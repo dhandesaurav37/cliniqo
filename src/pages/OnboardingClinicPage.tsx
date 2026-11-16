@@ -113,8 +113,8 @@ export function OnboardingClinicPage() {
       setError('Please enter a valid consultation fee in INR.');
       return;
     }
-    if (!form.openingTime || !form.closingTime) {
-      setError('Please set clinic opening and closing times.');
+    if (!form.openingTime || !form.closingTime || form.openingTime >= form.closingTime) {
+      setError('Clinic opening time must be earlier than closing time.');
       return;
     }
     if (form.workingDays.length === 0) {

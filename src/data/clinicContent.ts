@@ -60,26 +60,26 @@ export interface MedicineTemplateItem {
   instruction: string;
 }
 
-export const TRUST_PLACEHOLDERS = [
+export const CLINIC_READINESS_PILLARS = [
   {
-    label: 'Clinics Onboarded',
-    value: 'Placeholder',
-    note: 'Reserved for verified post-launch clinic count',
+    label: 'OPD Clinic Size',
+    value: '1–5 Doctors',
+    note: 'Built for independent outpatient clinics and front-desk receptionists',
   },
   {
-    label: 'Daily Consultations',
-    value: 'Placeholder',
-    note: 'To be published after initial clinic rollout',
+    label: 'Receptionist Access',
+    value: 'Code + Approval',
+    note: 'Staff join via private clinic code only after explicit doctor sign-off',
   },
   {
-    label: 'Avg. Setup Time',
-    value: 'Placeholder',
-    note: 'Measured during independent clinic trials',
+    label: 'Prescription Mode',
+    value: 'Rule-Based',
+    note: 'Predefined medicines, reusable templates, and deterministic quantity math',
   },
   {
-    label: 'Practitioner Rating',
-    value: 'Placeholder',
-    note: 'Added once verified doctor reviews are collected',
+    label: 'Tenant Boundary',
+    value: 'Per-Clinic',
+    note: 'Patient charts, queues, and doctor notes isolated to your clinic workspace',
   },
 ];
 
@@ -179,30 +179,24 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
   },
 ];
 
-export const TESTIMONIAL_PLACEHOLDERS = [
+export const CLINIC_ROLE_HIGHLIGHTS = [
   {
-    id: 'placeholder-1',
-    doctorName: 'Doctor Name Placeholder',
-    specialty: 'General Physician · Independent Clinic',
-    clinicName: 'Clinic Name & City Placeholder',
-    quote:
-      'Placeholder for verified practitioner feedback. This space will feature real experiences from solo general practitioners once post-launch onboarding completes.',
+    id: 'solo-doctor',
+    roleTitle: 'Solo Practitioners',
+    subtitle: '1-Doctor Independent Clinics',
+    note: 'Manage walk-ins, write rule-based prescriptions in seconds, print A4 clinic letterheads, and schedule follow-up visits from one clean workspace.',
   },
   {
-    id: 'placeholder-2',
-    doctorName: 'Doctor Name Placeholder',
-    specialty: 'Pediatrician · 2-Doctor Practice',
-    clinicName: 'Clinic Name & City Placeholder',
-    quote:
-      'Placeholder for verified practitioner feedback. Reserved for specialist clinic owners sharing how token queues and digital prescriptions fit their daily workflow.',
+    id: 'reception-desk',
+    roleTitle: 'Front-Desk Receptionists',
+    subtitle: 'Join via Private Clinic Code',
+    note: 'Register patients, issue live queue tokens, and manage appointment rescheduling after explicit doctor approval—without seeing private doctor-only notes.',
   },
   {
-    id: 'placeholder-3',
-    doctorName: 'Doctor Name Placeholder',
-    specialty: 'Dermatologist · Outpatient Clinic',
-    clinicName: 'Clinic Name & City Placeholder',
-    quote:
-      'Placeholder for verified practitioner feedback. Real doctor quotes, clinic names, and portraits will be published only after verified customer permission.',
+    id: 'group-clinic',
+    roleTitle: 'Small Group Practices',
+    subtitle: '2–5 Doctors · Shared Queue',
+    note: 'Keep every doctor’s consultation room synced with the waiting room in real time, complete with reusable clinic templates and per-clinic data isolation.',
   },
 ];
 

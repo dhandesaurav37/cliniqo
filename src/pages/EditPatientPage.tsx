@@ -119,6 +119,14 @@ export function EditPatientPage() {
       return;
     }
     if (
+      !form.dateOfBirth &&
+      form.age !== null &&
+      (Number.isNaN(form.age) || form.age < 0 || form.age > 130)
+    ) {
+      setError('Patient age must be between 0 and 130 years.');
+      return;
+    }
+    if (
       (form.emergencyName.trim() && form.emergencyMobile.trim().replace(/\D/g, '').length < 7) ||
       (!form.emergencyName.trim() && form.emergencyMobile.trim())
     ) {
@@ -277,6 +285,7 @@ export function EditPatientPage() {
                       type="number"
                       min={0}
                       max={130}
+                      readOnly={Boolean(form.dateOfBirth)}
                       value={form.age ?? ''}
                       onChange={(e) =>
                         setForm((p) => ({
@@ -284,8 +293,13 @@ export function EditPatientPage() {
                           age: e.target.value === '' ? null : Number(e.target.value),
                         }))
                       }
-                      className="mt-1.5 w-full min-h-[44px] rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-[#0B192C] tabular-nums"
+                      className={`mt-1.5 w-full min-h-[44px] rounded-xl border border-slate-200 px-3.5 text-sm text-[#0B192C] tabular-nums ${
+                        form.dateOfBirth ? 'bg-slate-50 text-slate-600 cursor-default' : 'bg-white'
+                      }`}
                     />
+                    {form.dateOfBirth && (
+                      <p className="mt-1 text-[10px] text-slate-500">Auto-calculated from DOB</p>
+                    )}
                   </div>
 
                   <div>

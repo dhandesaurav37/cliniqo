@@ -1,5 +1,5 @@
-import { Building2, ShieldCheck } from 'lucide-react';
-import { TRUST_PLACEHOLDERS } from '../data/clinicContent';
+import { Building2, FileText, ShieldCheck } from 'lucide-react';
+import { CLINIC_READINESS_PILLARS } from '../data/clinicContent';
 
 export function TrustSection() {
   return (
@@ -12,13 +12,13 @@ export function TrustSection() {
           </h2>
           <p className="mt-3 text-base text-slate-600 leading-relaxed">
             Independent practices don’t need enterprise hospital committees or multi-month IT
-            rollouts. Metrics below are reserved for verified customer data following launch.
+            rollouts. Every workflow stays focused on daily outpatient care.
           </p>
         </div>
 
-        {/* Clean 4-column placeholder metrics strip */}
+        {/* Clean 4-column clinic capability strip */}
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {TRUST_PLACEHOLDERS.map((item) => (
+          {CLINIC_READINESS_PILLARS.map((item) => (
             <div key={item.label} className="lucid-glass rounded-2xl p-6">
               <p className="text-xs font-medium text-slate-500">{item.label}</p>
               <p className="mt-2 font-display text-xl font-bold text-[#0B192C] tabular-nums">
@@ -29,7 +29,7 @@ export function TrustSection() {
           ))}
         </div>
 
-        {/* Clinic-focused + Security & Privacy + Testimonial Placeholder */}
+        {/* Clinic-focused + Security & Privacy + Deterministic Prescription Maker */}
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lucid-glass-subtle rounded-2xl p-6">
             <div className="flex items-center gap-2.5 text-[#0B192C]">
@@ -57,21 +57,17 @@ export function TrustSection() {
             </p>
           </div>
 
-          <div className="lucid-glass-subtle rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <p className="text-xs font-medium text-slate-500">
-                Doctor Testimonial Placeholder
-              </p>
-              <p className="mt-2.5 text-sm italic leading-relaxed text-slate-700">
-                “[Verified practitioner quote placeholder — will be populated after independent
-                clinics complete onboarding and grant publication consent.]”
-              </p>
+          <div className="lucid-glass-subtle rounded-2xl p-6">
+            <div className="flex items-center gap-2.5 text-[#0B192C]">
+              <FileText className="h-5 w-5 text-sky-600 shrink-0" aria-hidden="true" />
+              <h3 className="font-display text-base font-semibold">
+                Rule-Based Prescription Maker
+              </h3>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-200/70 text-xs text-slate-500">
-              <span className="font-medium text-[#0B192C]">[Doctor Name Placeholder]</span>
-              <span className="mx-1.5" aria-hidden="true">·</span>
-              <span>[Clinic Name Placeholder]</span>
-            </div>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              Doctors select from predefined medicines and saved clinic templates with structured
+              dosage patterns, allergy warnings, deterministic tablet counts, and A4 PDF printing.
+            </p>
           </div>
         </div>
       </div>

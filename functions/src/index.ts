@@ -1,12 +1,15 @@
 import * as crypto from 'node:crypto';
 import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
+import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { FIRESTORE_DATABASE_ID } from './appointments.js';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
+
+setGlobalOptions({ region: 'asia-south1' });
 
 const db = getFirestore(admin.app(), FIRESTORE_DATABASE_ID);
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -34,22 +37,50 @@ export const createClinicWithCode = onCall(async (request) => {
   const { uid } = assertVerifiedAuth(request.auth);
   const payload = request.data as Record<string, unknown>;
 
-  const name = String(payload.name ?? '').trim();
-  const address = String(payload.address ?? '').trim();
-  const city = String(payload.city ?? '').trim();
-  const state = String(payload.state ?? '').trim();
-  const pincode = String(payload.pincode ?? '').trim();
-  const phone = String(payload.phone ?? '').trim();
-  const email = String(payload.email ?? '').trim();
-  const logoUrl = String(payload.logoUrl ?? '').trim();
-  const consultationFee = Number(payload.consultationFee ?? 0);
-  const openingTime = String(payload.openingTime ?? '09:00').trim();
-  const closingTime = String(payload.closingTime ?? '20:00').trim();
-  const workingDays = Array.isArray(payload.workingDays) ? payload.workingDays : [];
-  const appointmentDuration = Number(payload.appointmentDuration ?? 15);
+  const name = String(payload.name ?? '').trim().slice(0, 140);
+  const address = String(payload.address ?? '').trim().slice(0, 300);
+  const city = String(payload.city ?? '').trim().slice(0, 100);
+  const state = String(payload.state ?? '').trim().slice(0, 100);
+  const pincode = String(payload.pincode ?? '').trim().slice(0, 12);
+  const phone = String(payload.phone ?? '').trim().slice(0, 24);
+  const email = String(payload.email ?? '').trim().slice(0, 160);
+  const logoUrl = String(payload.logoUrl ?? '').trim().slice(0, 40000);
+  const rawFee = Number(payload.consultationFee ?? 0);
+  const consultationFee = Number.isFinite(rawFee) ? rawFee : -1;
+  const openingTime = String(payload.openingTime ?? '09:00').trim().slice(0, 10);
+  const closingTime = String(payload.closingTime ?? '20:00').trim().slice(0, 10);
+  const rawWorkingDays = Array.isArray(payload.workingDays) ? payload.workingDays : [];
+  const validDays = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  const workingDays = Array.from(
+    new Set(rawWorkingDays.map((d) => String(d)).filter((d) => validDays.has(d))),
+  ).slice(0, 7);
+  const rawDuration = Number(payload.appointmentDuration ?? 15);
+  const appointmentDuration = Number.isFinite(rawDuration) ? rawDuration : 0;
+  const timezone = String(payload.timezone ?? 'Asia/Kolkata').trim().slice(0, 64) || 'Asia/Kolkata';
 
   if (name.length < 2 || address.length < 3 || city.length < 2 || state.length < 2) {
     throw new HttpsError('invalid-argument', 'Required clinic details are incomplete.');
+  }
+  if (!/^[a-zA-Z0-9\s-]{4,12}$/.test(pincode)) {
+    throw new HttpsError('invalid-argument', 'Valid pincode/postal code (4-12 chars) is required.');
+  }
+  if (!/^[+\d\s()-]{7,20}$/.test(phone)) {
+    throw new HttpsError('invalid-argument', 'Valid clinic phone number is required.');
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpsError('invalid-argument', 'Clinic email address format is invalid.');
+  }
+  if (consultationFee < 0 || consultationFee > 100000) {
+    throw new HttpsError('invalid-argument', 'Consultation fee must be between 0 and 100,000.');
+  }
+  if (appointmentDuration < 5 || appointmentDuration > 180) {
+    throw new HttpsError('invalid-argument', 'Appointment duration must be between 5 and 180 minutes.');
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(openingTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(closingTime) || openingTime >= closingTime) {
+    throw new HttpsError('invalid-argument', 'Closing time must be later than opening time (HH:MM).');
+  }
+  if (workingDays.length === 0) {
+    throw new HttpsError('invalid-argument', 'Select at least one clinic working day.');
   }
 
   return db.runTransaction(async (tx) => {
@@ -81,8 +112,8 @@ export const createClinicWithCode = onCall(async (request) => {
       state,
       pincode,
       phone,
-      email,
-      logoUrl,
+      ...(email ? { email } : {}),
+      ...(logoUrl ? { logoUrl } : {}),
       ownerId: uid,
       joiningCode,
       joiningCodeActive: true,
@@ -92,6 +123,15 @@ export const createClinicWithCode = onCall(async (request) => {
       closingTime,
       workingDays,
       appointmentDuration,
+      timezone,
+      receptionistPermissions: {
+        canCreateAppointments: true,
+        canCancelAppointments: true,
+      },
+      whatsappSettings: {
+        enabled: true,
+        languageCode: 'en',
+      },
       createdAt: now,
       updatedAt: now,
     });

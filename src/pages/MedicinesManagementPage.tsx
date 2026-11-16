@@ -59,6 +59,7 @@ export function MedicinesManagementPage() {
   const [editingMed, setEditingMed] = useState<MedicineRecord | null>(null);
   const [form, setForm] = useState<MedicineFormInput>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +82,15 @@ export function MedicinesManagementPage() {
     void loadMedicines();
   }, [loadMedicines]);
 
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !saving) setModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [modalOpen, saving]);
+
   const filtered = useMemo(() => {
     const base = filterClinicMedicines(medicines, search, {
       includeInactive: filter === 'inactive' || filter === 'all',
@@ -98,6 +108,7 @@ export function MedicinesManagementPage() {
   const openCreateModal = () => {
     setEditingMed(null);
     setForm(EMPTY_FORM);
+    setModalError(null);
     setModalOpen(true);
   };
 
@@ -115,13 +126,19 @@ export function MedicinesManagementPage() {
       isFavorite: med.isFavorite,
       isSampleData: med.isSampleData,
     });
+    setModalError(null);
     setModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinic || !user) return;
+    if (form.medicineName.trim().length < 2) {
+      setModalError('Please enter a medicine name (at least 2 characters).');
+      return;
+    }
     setSaving(true);
+    setModalError(null);
     setError(null);
     setFeedback(null);
     try {
@@ -131,19 +148,19 @@ export function MedicinesManagementPage() {
           medicineId: editingMed.id,
           input: form,
         });
-        setFeedback(`Updated "${form.medicineName}".`);
+        setFeedback(`Updated "${form.medicineName.trim()}".`);
       } else {
         await createClinicMedicine({
           clinicId: clinic.id,
           actorUid: user.uid,
           input: form,
         });
-        setFeedback(`Added "${form.medicineName}" to clinic medicine catalog.`);
+        setFeedback(`Added "${form.medicineName.trim()}" to clinic medicine catalog.`);
       }
       setModalOpen(false);
       await loadMedicines();
     } catch (err: unknown) {
-      setError(getUserFriendlyErrorMessage(err, 'Unable to save medicine.'));
+      setModalError(getUserFriendlyErrorMessage(err, 'Unable to save medicine.'));
     } finally {
       setSaving(false);
     }
@@ -554,6 +571,15 @@ export function MedicinesManagementPage() {
                 Pin as favorite medicine (appears first in prescription search)
               </label>
             </div>
+
+            {modalError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
+              >
+                {modalError}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button

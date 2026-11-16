@@ -63,6 +63,16 @@ export function RescheduleAppointmentModal({
     };
   }, [clinic.id]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [busy, onClose]);
+
   const slotData = useMemo(
     () =>
       generateDoctorAvailableSlots({
@@ -274,6 +284,16 @@ export function CancelAppointmentModal({
   const [sendWhatsapp, setSendWhatsapp] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [busy, onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

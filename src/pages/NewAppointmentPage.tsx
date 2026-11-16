@@ -5,6 +5,7 @@ import { AppShellLayout } from '../components/AppShellLayout';
 import { ScheduleAppointmentForm } from '../components/ScheduleAppointmentForm';
 import { useAuth } from '../context/AuthContext';
 import { isReceptionistAuthorizedToCreate } from '../lib/appointmentService';
+import { getUserFriendlyErrorMessage } from '../lib/errorUtils';
 import { fetchPatientByIdOrCode, type PatientRecord } from '../lib/patientService';
 
 export function NewAppointmentPage() {
@@ -19,21 +20,37 @@ export function NewAppointmentPage() {
 
   const [initialPatient, setInitialPatient] = useState<PatientRecord | null>(null);
   const [loadingPatient, setLoadingPatient] = useState(Boolean(patientParam));
+  const [patientLoadError, setPatientLoadError] = useState<string | null>(null);
 
   const authorized = isReceptionistAuthorizedToCreate(clinic, membership?.role);
 
   useEffect(() => {
     if (!clinic || !patientParam) {
       setLoadingPatient(false);
+      setPatientLoadError(null);
       return;
     }
     let cancelled = false;
     setLoadingPatient(true);
+    setPatientLoadError(null);
     fetchPatientByIdOrCode(clinic.id, patientParam)
       .then((res) => {
-        if (!cancelled) setInitialPatient(res);
+        if (!cancelled) {
+          setInitialPatient(res);
+          if (!res) {
+            setPatientLoadError(
+              `Could not find patient "${patientParam}". You can select another patient below.`,
+            );
+          }
+        }
       })
-      .catch(() => undefined)
+      .catch((err) => {
+        if (!cancelled) {
+          setPatientLoadError(
+            getUserFriendlyErrorMessage(err, 'Unable to pre-load selected patient.'),
+          );
+        }
+      })
       .finally(() => {
         if (!cancelled) setLoadingPatient(false);
       });
@@ -64,6 +81,15 @@ export function NewAppointmentPage() {
             conflicts are checked automatically.
           </p>
         </div>
+
+        {patientLoadError && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs sm:text-sm text-amber-900"
+          >
+            {patientLoadError}
+          </div>
+        )}
 
         {!authorized ? (
           <div className="lucid-glass rounded-3xl p-8 space-y-4">

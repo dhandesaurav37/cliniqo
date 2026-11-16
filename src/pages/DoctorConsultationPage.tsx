@@ -102,6 +102,7 @@ export function DoctorConsultationPage() {
   const [showAmendModal, setShowAmendModal] = useState(false);
   const [amendReason, setAmendReason] = useState('');
   const [creatingAmendment, setCreatingAmendment] = useState(false);
+  const [amendError, setAmendError] = useState<string | null>(null);
 
   const [linkedAppointments, setLinkedAppointments] = useState<AppointmentRecord[]>([]);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
@@ -196,6 +197,20 @@ export function DoctorConsultationPage() {
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    if (!showAmendModal && !showFollowUpModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showAmendModal && !creatingAmendment) {
+        setShowAmendModal(false);
+      } else if (showFollowUpModal) {
+        setShowFollowUpModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showAmendModal, creatingAmendment, showFollowUpModal]);
 
   const previousVisitDate = useMemo(() => {
     const prior = previousConsultations.find((c) => c.completedAt || c.createdAt);
@@ -383,50 +398,66 @@ export function DoctorConsultationPage() {
       setTemplates(nextTpls);
       setFeedback(`Saved reusable template "${name}".`);
     } catch (err: unknown) {
-      setError(getUserFriendlyErrorMessage(err, 'Unable to save template.'));
+      const msg = getUserFriendlyErrorMessage(err, 'Unable to save template.');
+      setError(msg);
+      throw new Error(msg);
     }
   };
 
   const handleDownloadPdf = async () => {
     if (!clinic || !patient || !consultation || !activePrescription || !user || !membership) return;
-    generatePrescriptionA4Pdf({
-      clinic,
-      doctor: profile,
-      patient,
-      consultation: {
-        ...consultation,
-        ...buildConsultationInput(),
-      },
-      prescription: activePrescription,
-    });
-    await recordPrescriptionPdfAction({
-      clinicId: clinic.id,
-      prescription: activePrescription,
-      doctorUid: user.uid,
-      doctorName: actorName,
-      actorRole: membership.role,
-      mode: 'download',
-    });
+    setError(null);
+    try {
+      generatePrescriptionA4Pdf({
+        clinic,
+        doctor: profile,
+        patient,
+        consultation: {
+          ...consultation,
+          ...buildConsultationInput(),
+        },
+        prescription: activePrescription,
+      });
+      await recordPrescriptionPdfAction({
+        clinicId: clinic.id,
+        prescription: activePrescription,
+        doctorUid: user.uid,
+        doctorName: actorName,
+        actorRole: membership.role,
+        mode: 'download',
+      });
+    } catch (err: unknown) {
+      setError(getUserFriendlyErrorMessage(err, 'Unable to generate or record prescription PDF.'));
+    }
   };
 
   const handlePrint = async () => {
     if (!clinic || !activePrescription || !user || !membership) return;
-    window.print();
-    await recordPrescriptionPdfAction({
-      clinicId: clinic.id,
-      prescription: activePrescription,
-      doctorUid: user.uid,
-      doctorName: actorName,
-      actorRole: membership.role,
-      mode: 'print',
-    });
+    setError(null);
+    try {
+      window.print();
+      await recordPrescriptionPdfAction({
+        clinicId: clinic.id,
+        prescription: activePrescription,
+        doctorUid: user.uid,
+        doctorName: actorName,
+        actorRole: membership.role,
+        mode: 'print',
+      });
+    } catch (err: unknown) {
+      setError(getUserFriendlyErrorMessage(err, 'Unable to log print action.'));
+    }
   };
 
   const handleCreateAmendment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinic || !consultation || !activePrescription || !user || !membership) return;
+    if (amendReason.trim().length < 3) {
+      setAmendError('Please enter a brief amendment reason (at least 3 characters).');
+      return;
+    }
     setCreatingAmendment(true);
-    setError(null);
+    setAmendError(null);
     try {
       const newDraftId = await createAmendedPrescriptionDraft({
         clinicId: clinic.id,
@@ -434,7 +465,7 @@ export function DoctorConsultationPage() {
         doctorUid: user.uid,
         doctorName: actorName,
         actorRole: membership.role,
-        reason: amendReason,
+        reason: amendReason.trim(),
       });
       const refreshed = await fetchPrescriptionsForConsultation(clinic.id, consultation.id);
       setRxVersions(refreshed);
@@ -447,7 +478,7 @@ export function DoctorConsultationPage() {
         `Created editable amendment draft v${nextDraft?.version || activePrescription.version + 1}. Original v${activePrescription.version} remains locked.`,
       );
     } catch (err: unknown) {
-      setError(getUserFriendlyErrorMessage(err, 'Unable to create amendment.'));
+      setAmendError(getUserFriendlyErrorMessage(err, 'Unable to create amendment.'));
     } finally {
       setCreatingAmendment(false);
     }
@@ -1140,7 +1171,10 @@ export function DoctorConsultationPage() {
               onSaveAsTemplate={handleSaveAsTemplate}
               onDownloadPdf={handleDownloadPdf}
               onPrint={handlePrint}
-              onOpenAmendmentModal={() => setShowAmendModal(true)}
+              onOpenAmendmentModal={() => {
+                setAmendError(null);
+                setShowAmendModal(true);
+              }}
             />
           </>
         )}
@@ -1182,6 +1216,15 @@ export function DoctorConsultationPage() {
                 className="mt-1 w-full min-h-[40px] rounded-xl border border-slate-200 px-3 text-sm text-[#0B192C]"
               />
             </div>
+
+            {amendError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
+              >
+                {amendError}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-1">
               <button

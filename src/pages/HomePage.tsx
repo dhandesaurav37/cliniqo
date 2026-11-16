@@ -27,11 +27,13 @@ export function HomePage() {
     }
   };
 
-  const handleGetStartedNav = () => {
+  const handleGetStartedNav = (planName?: string) => {
     if (user) {
       navigate('/app/dashboard');
     } else {
-      navigate('/register');
+      navigate(
+        `/register${planName ? `?plan=${encodeURIComponent(planName)}` : ''}`,
+      );
     }
   };
 
